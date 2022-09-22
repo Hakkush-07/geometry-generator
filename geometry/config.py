@@ -1,8 +1,11 @@
-from itertools import combinations
+from itertools import combinations, permutations
 from random import sample, choice, random
 from datetime import datetime
-import os
+from os import mkdir
+from math import pi
+# from .objects import Point, Line, Circle, P, L, C <-- the goal
 from .objects import *
+from .construction import Construction
 
 class Config:
     def __init__(self, initial):
@@ -33,194 +36,39 @@ class Config:
         return Config([Point(P.dir(a)), Point(P.dir(b)), Point(P.dir(c))])
     
     def run(self, obj_limit):
-        function_list = [
-            self.pp,
-            self.pl,
-            self.pc,
-            self.ll,
-            self.lc,
-            self.cc,
-            self.ppp,
-            self.ppl,
-            self.ppc,
-            self.pppp,
-            self.pppl,
-            self.pppc,
-            self.ppppp
-        ]
-        obj_count = len(self.objects)
-        while obj_count < obj_limit:
-            f = choice(function_list)
-            print(f"object count = {obj_count}, applying {f.__name__}")
-            f()
-            obj_count = len(self.objects)
+        while len(self.objects) < obj_limit:
+            print(len(self.objects))
+            self.apply_random_construction()
         print("adding trivial properties")
         self.add_trivial_properties()
         print("saving")
         self.save()
     
-    def pp(self):
-        if len(self.points) < 2:
+    def apply_random_construction(self):
+        construction = choice(Construction.default())
+        if not self.select_can(construction.p, construction.l, construction.c):
             return
-        a, b = sample(self.points, 2)
-        if a @ b:
-            return
-        self.construct(Config.apply(pp_fl, (a, b)))
+        objects = self.select_one(construction.p, construction.l, construction.c)
+        for condition in construction.conditions:
+            if not condition(*objects):
+                return
+        self.construct(Config.apply(construction.functions, objects))
     
-    def pl(self):
-        if len(self.points) < 1 or len(self.lines) < 1:
-            return
-        a, u = choice(self.points), choice(self.lines)
-        if is_pl(a, u):
-            self.construct(Config.apply(pl_1_fl, (a, u)))
-        else:
-            self.construct(Config.apply(pl_2_fl, (a, u)))
+    def select_can(self, p, l, c):
+        if len(self.points) < p:
+            return False
+        if len(self.lines) < l:
+            return False
+        if len(self.circles) < c:
+            return False
+        return True
     
-    def pc(self):
-        if len(self.points) < 1 or len(self.circles) < 1:
-            return
-        a, s = choice(self.points), choice(self.circles)
-        if a @ s.o:
-            return
-        r = pcr(a, s)
-        if r == -1:
-            self.construct(Config.apply(pc_1_fl, (a, s)))
-        elif r == 0:
-            self.construct(Config.apply(pc_2_fl, (a, s)))
-        elif r == 1:
-            self.construct(Config.apply(pc_3_fl, (a, s)))
-    
-    def ll(self):
-        if len(self.lines) < 2:
-            return
-        u, v = sample(self.lines, 2)
-        if is_parallel(u, v):
-            return
-        self.construct(Config.apply(ll_fl, (u, v)))
-    
-    def lc(self):
-        if len(self.lines) < 1 or len(self.circles) < 1:
-            return
-        u, s = choice(self.lines), choice(self.circles)
-        if is_pl(s.o, u):
-            return
-        r = lcr(u, s)
-        if r == -1:
-            self.construct(Config.apply(lc_1_fl, (u, s)))
-        elif r == 0:
-            self.construct(Config.apply(lc_2_fl, (u, s)))
-        elif r == 1:
-            self.construct(Config.apply(lc_3_fl, (u, s)))
-    
-    def cc(self):
-        if len(self.circles) < 2:
-            return
-        s, t = sample(self.circles, 2)
-        if is_bad_circles(s, t):
-            return
-        r = ccr(s, t)
-        if r == -2:
-            return
-        elif r == -1:
-            self.construct(Config.apply(cc_1_fl, (s, t)))
-        elif r == 0:
-            self.construct(Config.apply(cc_2_fl, (s, t)))
-        elif r == 1:
-            self.construct(Config.apply(cc_3_fl, (s, t)))
-        elif r == 2:
-            self.construct(Config.apply(cc_4_fl, (s, t)))
-    
-    def ppp(self):
-        if len(self.points) < 3:
-            return
-        a, b, c = sample(self.points, 3)
-        if not is_different_points((a, b, c)):
-            return
-        if is_collinear(a, b, c):
-            return
-        self.construct(Config.apply(ppp_fl, (a, b, c)))
-    
-    def ppl(self):
-        if len(self.points) < 2 or len(self.lines) < 1:
-            return
-        a, b = sample(self.points, 2)
-        u = choice(self.lines)
-        if a @ b:
-            return
-        if is_parallel(line(a, b), u):
-            return
-        if is_pl(a, u) or is_pl(b, u):
-            return
-        self.construct(Config.apply(ppl_fl, (a, b, u)))
-    
-    def ppc(self):
-        if len(self.points) < 2 or len(self.circles) < 1:
-            return
-        a, b = sample(self.points, 2)
-        s = choice(self.circles)
-        if a @ b:
-            return
-        if lcr(line(a, b), s) != -1:
-            return
-        self.construct(Config.apply(ppc_fl, (a, b, s)))
-
-    def ccc(self):
-        if len(self.circles) < 3:
-            return
-        s, t, m = sample(self.circles, 3)
-        if is_bad_circles(s, t) or is_bad_circles(s, m) or is_bad_circles(t, m):
-            return
-        if is_collinear(s.o, t.o, m.o):
-            return
-        self.construct(Config.apply(ccc_fl, (s, t, m)))
-
-    def pppp(self):
-        if len(self.points) < 4:
-            return
-        a, b, c, d = sample(self.points, 4)
-        if not is_different_points((a, b, c, d)):
-            return
-        if not not_three_collinear((a, b, c, d)):
-            return
-        self.construct(Config.apply(pppp_fl, (a, b, c, d)))
-    
-    def pppl(self):
-        if len(self.points) < 3 or len(self.lines) < 1:
-            return
-        a, b, c = sample(self.points, 3)
-        u = choice(self.lines)
-        if not is_different_points((a, b, c)):
-            return
-        if is_collinear(a, b, c):
-            return
-        if not is_nice_pppl(a, b, c, u):
-            return
-        self.construct(Config.apply(pppl_fl, (a, b, c, u)))
-    
-    def pppc(self):
-        if len(self.points) < 3 or len(self.circles) < 1:
-            return
-        a, b, c = sample(self.points, 3)
-        s = choice(self.circles)
-        if not is_different_points((a, b, c)):
-            return
-        if is_collinear(a, b, c):
-            return
-        if not is_nice_pppc(a, b, c, s):
-            return
-        self.construct(Config.apply(pppc_fl, (a, b, c, s)))
-
-    def ppppp(self):
-        if len(self.points) < 5:
-            return
-        a, b, c, d, e = sample(self.points, 5)
-        if not is_different_points((a, b, c, d, e)):
-            return
-        if not not_three_collinear((a, b, c, d, e)):
-            return
-        if not is_nice_ppppp(a, b, c, d, e):
-            return
-        self.construct(Config.apply(ppppp_fl, (a, b, c, d, e)))
+    def select_one(self, p, l, c):
+        selected_points = sample(self.points, p)
+        selected_lines = sample(self.lines, l)
+        selected_circles = sample(self.circles, c)
+        objects = selected_points + selected_lines + selected_circles
+        return objects
 
     @staticmethod
     def apply(functions, objects):
@@ -512,25 +360,26 @@ class Config:
     def save(self):
         x = datetime.now()
         name = f"{x.year}-{'-'.join(map(lambda e: str(e).zfill(2), [x.month, x.day, x.hour, x.minute, x.second]))}"
-        folder = f"outputs/tests/{name}"
-        if not os.path.exists(folder):
-            os.mkdir(folder)
+        folder = f"outputs/{name}"
+        mkdir(folder)
         with open(f"{folder}/test.txt", "w+") as file:
             file.write(self.txt())
         with open(f"{folder}/test.tex", "w+") as file:
-            file.write(self.tex(self.search_properties()))
+            file.write(self.tex())
         with open(f"{folder}/test.asy", "w+") as file:
             file.write(self.asy())
-        with open("outputs/templates/latexmkrc", "r+") as file:
+        with open("templates/latexmkrc", "r+") as file:
             latexmkrc = file.read()
         with open(f"{folder}/latexmkrc", "w+") as file:
             file.write(latexmkrc)
-        os.chdir(os.getcwd() + "\\" + folder.replace('/', '\\'))
-        os.system('"C:\\Program Files\\Asymptote\\asy" -o test2 test.asy')
-        os.system(f"latexmk -aux-directory=auxs -pdf") # this takes time
+        with open("templates/compile.bat", "r+") as file:
+            bat = file.read()
+        with open(f"{folder}/compile.bat", "w+") as file:
+            file.write(bat)
 
-    def tex(self, properties):
-        with open("outputs/templates/example.property", "r+") as file:
+    def tex(self):
+        properties = self.search_properties()
+        with open("templates/example.property", "r+") as file:
             property_content = file.read()
         
         def tex_property(property):
@@ -551,14 +400,14 @@ class Config:
             depth_diff = max_depth - min_depth
             return max_depth * 1000 + depth_diff
         
-        with open("outputs/templates/example.tex", "r+") as file:
+        with open("templates/example.tex", "r+") as file:
             content = file.read()
         return content.replace("CONTENT", "".join([tex_property(property) for property in sorted(properties, key=property_sorter)]))
         
     def asy(self, raw=False):
         asy = ""
         if not raw:
-            with open(f"outputs/templates/example.asy", "r+") as file:
+            with open(f"templates/example.asy", "r+") as file:
                 asy = file.read()
         for p in self.points:
             asy += p.asy() if not raw else p.asy2()
