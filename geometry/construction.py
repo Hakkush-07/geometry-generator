@@ -5,6 +5,7 @@ class Construction:
         self.functions = functions
         self.conditions = conditions
         self.p, self.l, self.c = map(int, self.functions[0].__doc__.split("\n")[1].split(","))
+        assert all([tuple(map(int, f.__doc__.split("\n")[1].split(","))) == (self.p, self.l, self.c) for f in self.functions])
 
     @staticmethod
     def default():
@@ -213,5 +214,3 @@ class Construction:
                 ]
             )
         )
-
-
