@@ -1,0 +1,13 @@
+\begin{center}
+\begin{asy}
+size(12cm);
+import olympiad;
+ASY_CONTENT
+\end{asy}
+\end{center}
+DESCRIPTION\\
+------\\
+OTHERS\\
+------\\
+\newpage
+
