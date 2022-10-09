@@ -203,8 +203,6 @@ class Config:
         mkdir(folder)
         print(f"output is ready in {folder}")
         print(sum([len(property.unknown) for property in self.properties]), "unknown properties found")
-        #with open(f"{folder}/config.log", "w+") as file:
-        #    file.write(self.log())
         with open(f"{folder}/config.txt", "w+") as file:
             file.write(self.txt())
         with open(f"{folder}/test.asy", "w+") as file:
@@ -215,8 +213,4 @@ class Config:
             latexmkrc = file.read()
         with open(f"{folder}/latexmkrc", "w+") as file:
             file.write(latexmkrc)
-        with open("templates/compile.bat", "r+") as file:
-            bat = file.read()
-        with open(f"{folder}/compile.bat", "w+") as file:
-            file.write(bat)
 

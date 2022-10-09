@@ -1,7 +1,7 @@
-# Geometry Annihiliator
+# Geometry Generator
 
-Clicking on ```run.bat``` runs ```main.py``` script which calls the main function from ```geometry``` package.
+This project is largely inspired by [GeoGen](https://github.com/PatrikBak/GeoGen)
 
-This operation creates an output folder file named after the time it starts in ```outputs/tests``` folder
+`python main.py` creates a folder containing an `asymptote` figure of a randomly created configuration consisting of points, lines, circles by constantly adding new objects, a `tex` description file, and a `tex` file of unknown properties of the configuration in `outputs` folder.
 
-It contains a pdf file with each page consisting of a property, a figure, and a description text.
+Compile `asy` and `tex` files. (For `latexmk`, a `latexmkrc` file is also included in the output folder, use `latexmk -aux-directory=auxs -pdf` to compile)
